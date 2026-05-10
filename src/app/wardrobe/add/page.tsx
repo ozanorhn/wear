@@ -10,6 +10,8 @@ import { CATEGORIES, OCCASIONS, SEASONS, type Category, type Occasion, type Seas
 
 type Stage = "pick" | "processing" | "form";
 
+export const dynamic = "force-dynamic";
+
 export default function AddItemPage() {
   const router = useRouter();
   const supabase = createClient();
