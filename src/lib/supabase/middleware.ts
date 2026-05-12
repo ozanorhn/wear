@@ -2,45 +2,60 @@ import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 export async function updateSession(request: NextRequest) {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  // Wenn ENV-Vars fehlen: nur die Auth-Seiten zugänglich machen, damit der User wenigstens
+  // eine Fehlermeldung sieht statt einer redirect-Schleife.
+  if (!url || !key) {
+    const path = request.nextUrl.pathname;
+    if (path.startsWith("/login") || path.startsWith("/signup") || path === "/setup") {
+      return NextResponse.next({ request });
+    }
+    const redirect = request.nextUrl.clone();
+    redirect.pathname = "/setup";
+    return NextResponse.redirect(redirect);
+  }
+
   let supabaseResponse = NextResponse.next({ request });
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll();
-        },
-        setAll(cookiesToSet: { name: string; value: string; options: CookieOptions }[]) {
-          cookiesToSet.forEach(({ name, value }) =>
-            request.cookies.set(name, value),
-          );
-          supabaseResponse = NextResponse.next({ request });
-          cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options),
-          );
-        },
+  const supabase = createServerClient(url, key, {
+    cookies: {
+      getAll() {
+        return request.cookies.getAll();
+      },
+      setAll(cookiesToSet: { name: string; value: string; options: CookieOptions }[]) {
+        cookiesToSet.forEach(({ name, value }) =>
+          request.cookies.set(name, value),
+        );
+        supabaseResponse = NextResponse.next({ request });
+        cookiesToSet.forEach(({ name, value, options }) =>
+          supabaseResponse.cookies.set(name, value, options),
+        );
       },
     },
-  );
+  });
 
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const url = request.nextUrl.clone();
-  const isAuthRoute = url.pathname.startsWith("/login") || url.pathname.startsWith("/signup");
-  const isPublic = isAuthRoute || url.pathname === "/manifest.webmanifest" || url.pathname.startsWith("/icons");
+  const urlPath = request.nextUrl.clone();
+  const isAuthRoute = urlPath.pathname.startsWith("/login") || urlPath.pathname.startsWith("/signup");
+  const isPublic =
+    isAuthRoute ||
+    urlPath.pathname === "/manifest.webmanifest" ||
+    urlPath.pathname.startsWith("/icons") ||
+    urlPath.pathname === "/setup";
 
   if (!user && !isPublic) {
-    url.pathname = "/login";
-    return NextResponse.redirect(url);
+    urlPath.pathname = "/login";
+    return NextResponse.redirect(urlPath);
   }
 
   if (user && isAuthRoute) {
-    url.pathname = "/wardrobe";
-    return NextResponse.redirect(url);
+    urlPath.pathname = "/wardrobe";
+    return NextResponse.redirect(urlPath);
   }
 
   return supabaseResponse;
