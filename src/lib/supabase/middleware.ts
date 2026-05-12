@@ -9,7 +9,13 @@ export async function updateSession(request: NextRequest) {
   // eine Fehlermeldung sieht statt einer redirect-Schleife.
   if (!url || !key) {
     const path = request.nextUrl.pathname;
-    if (path.startsWith("/login") || path.startsWith("/signup") || path === "/setup") {
+    if (
+      path.startsWith("/login") ||
+      path.startsWith("/signup") ||
+      path.startsWith("/forgot-password") ||
+      path.startsWith("/reset-password") ||
+      path === "/setup"
+    ) {
       return NextResponse.next({ request });
     }
     const redirect = request.nextUrl.clone();
@@ -41,9 +47,13 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const urlPath = request.nextUrl.clone();
-  const isAuthRoute = urlPath.pathname.startsWith("/login") || urlPath.pathname.startsWith("/signup");
+  const isAuthRoute =
+    urlPath.pathname.startsWith("/login") ||
+    urlPath.pathname.startsWith("/signup") ||
+    urlPath.pathname.startsWith("/forgot-password");
   const isPublic =
     isAuthRoute ||
+    urlPath.pathname.startsWith("/reset-password") ||
     urlPath.pathname === "/manifest.webmanifest" ||
     urlPath.pathname.startsWith("/icons") ||
     urlPath.pathname === "/setup";
