@@ -2,6 +2,11 @@
   command = "npm run build"
   publish = ".next"
 
-[build.environment]
-  NEXT_PUBLIC_SUPABASE_URL = "https://amczjgkdaurdjsogirrv.supabase.co"
-  NEXT_PUBLIC_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFtY3pqZ2tkYXVyZGpzb2dpcnJ2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg0MzMxNDAsImV4cCI6MjA5NDAwOTE0MH0.uBxSfPVtGZ8VFAGS3jlcydcMHyk4YrB_mew7ol8DcQQ"
+# Secrets gehören NICHT hierhin — bitte im Netlify-Dashboard eintragen:
+# Site settings → Environment variables
+#   NEXT_PUBLIC_SUPABASE_URL
+#   NEXT_PUBLIC_SUPABASE_ANON_KEY
+#   OPENAI_API_KEY
+#
+# Der NEXT_PUBLIC_SUPABASE_ANON_KEY ist zwar öffentlich (Row-Level-Security schützt
+# die Daten), aber Konsistenz: alle Env-Vars über das Dashboard, nichts ins Repo.

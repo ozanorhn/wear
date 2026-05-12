@@ -4,7 +4,8 @@ import { createClient } from "@/lib/supabase/server";
 import { TopBar } from "@/components/TopBar";
 import { BottomNav } from "@/components/BottomNav";
 import { OutfitActions } from "./OutfitActions";
-import type { Item, Outfit } from "@/lib/types";
+import { TryOnPanel } from "./TryOnPanel";
+import { formatLastWorn, type Item, type Outfit } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -46,9 +47,25 @@ export default async function OutfitPage({ params }: { params: { id: string } })
           ))}
         </div>
 
-        <OutfitActions id={o.id} />
+        <dl className="mt-5 space-y-3 text-sm">
+          <Row label="Zuletzt getragen" value={formatLastWorn(o.last_worn_at)} />
+          <Row label="Wie oft getragen" value={`${o.wear_count}×`} />
+        </dl>
+
+        <OutfitActions id={o.id} isFavorite={o.is_favorite} />
+
+        <TryOnPanel id={o.id} existing={o.tryon_url} />
       </main>
       <BottomNav />
     </>
+  );
+}
+
+function Row({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-start justify-between gap-4 border-b border-border py-2.5">
+      <dt className="text-muted">{label}</dt>
+      <dd className="text-right font-medium">{value}</dd>
+    </div>
   );
 }

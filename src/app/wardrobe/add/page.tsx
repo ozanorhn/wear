@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Camera, Loader2, Sparkles } from "lucide-react";
+import { Camera, ImagePlus, Loader2, Sparkles } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { TopBar } from "@/components/TopBar";
 import { getRemoveBackground } from "@/lib/bgRemoval";
@@ -10,12 +10,11 @@ import { CATEGORIES, OCCASIONS, SEASONS, type Category, type Occasion, type Seas
 
 type Stage = "pick" | "processing" | "form";
 
-export const dynamic = "force-dynamic";
-
 export default function AddItemPage() {
   const router = useRouter();
   const supabase = createClient();
-  const fileInput = useRef<HTMLInputElement>(null);
+  const cameraInput = useRef<HTMLInputElement>(null);
+  const galleryInput = useRef<HTMLInputElement>(null);
 
   const [stage, setStage] = useState<Stage>("pick");
   const [processedBlob, setProcessedBlob] = useState<Blob | null>(null);
@@ -30,9 +29,52 @@ export default function AddItemPage() {
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [aiBusy, setAiBusy] = useState(false);
+  const [aiHint, setAiHint] = useState<string | null>(null);
+
+  function blobToDataUrl(blob: Blob): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = () => reject(reader.error);
+      reader.readAsDataURL(blob);
+    });
+  }
+
+  async function autoCategorize(blob: Blob) {
+    setAiBusy(true);
+    setAiHint(null);
+    try {
+      const dataUrl = await blobToDataUrl(blob);
+      const res = await fetch("/api/ai/categorize", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ dataUrl }),
+      });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        throw new Error(j.error ?? `HTTP ${res.status}`);
+      }
+      const tags = await res.json();
+      if (tags.name && !name) setName(tags.name);
+      if (tags.category && CATEGORIES.includes(tags.category)) setCategory(tags.category);
+      if (tags.color && !color) setColor(tags.color);
+      if (Array.isArray(tags.seasons))
+        setSeasons(tags.seasons.filter((s: string): s is Season => (SEASONS as readonly string[]).includes(s)));
+      if (Array.isArray(tags.occasions))
+        setOccasions(tags.occasions.filter((o: string): o is Occasion => (OCCASIONS as readonly string[]).includes(o)));
+      setAiHint("AI-Vorschläge eingetragen — du kannst alles ändern.");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "AI-Vorschlag fehlgeschlagen.";
+      setAiHint(`AI nicht verfügbar (${msg}) — bitte manuell ausfüllen.`);
+    } finally {
+      setAiBusy(false);
+    }
+  }
 
   async function onFileChosen(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
+    e.target.value = "";
     if (!file) return;
     setStage("processing");
     setError(null);
@@ -46,6 +88,7 @@ export default function AddItemPage() {
       if (previewUrl) URL.revokeObjectURL(previewUrl);
       setPreviewUrl(URL.createObjectURL(blob));
       setStage("form");
+      autoCategorize(blob);
     } catch (err) {
       console.error(err);
       setError("Konnte Hintergrund nicht entfernen. Versuch's nochmal oder benutz ein anderes Foto.");
@@ -103,9 +146,9 @@ export default function AddItemPage() {
       <TopBar title="Neues Kleidungsstück" back="/wardrobe" />
       <main className="mx-auto max-w-md px-4 pb-28 pt-4">
         {stage === "pick" && (
-          <div className="flex flex-col items-center">
+          <div className="flex flex-col items-center gap-3">
             <button
-              onClick={() => fileInput.current?.click()}
+              onClick={() => cameraInput.current?.click()}
               className="flex aspect-square w-full max-w-xs flex-col items-center justify-center gap-3 rounded-3xl border-2 border-dashed border-border bg-card text-muted active:scale-[0.99]"
             >
               <Camera size={36} />
@@ -114,11 +157,25 @@ export default function AddItemPage() {
                 Tipp: heller, gleichmäßiger Hintergrund
               </span>
             </button>
+            <button
+              onClick={() => galleryInput.current?.click()}
+              className="btn btn-outline w-full max-w-xs"
+            >
+              <ImagePlus size={18} />
+              Aus Galerie hochladen
+            </button>
             <input
-              ref={fileInput}
+              ref={cameraInput}
               type="file"
               accept="image/*"
               capture="environment"
+              className="hidden"
+              onChange={onFileChosen}
+            />
+            <input
+              ref={galleryInput}
+              type="file"
+              accept="image/*"
               className="hidden"
               onChange={onFileChosen}
             />
@@ -148,6 +205,25 @@ export default function AddItemPage() {
               <span className="absolute right-2 top-2 inline-flex items-center gap-1 rounded-full bg-fg/85 px-2 py-1 text-[10px] font-medium text-bg">
                 <Sparkles size={10} /> Hintergrund entfernt
               </span>
+            </div>
+
+            <div className="card flex items-center gap-2 p-3 text-xs">
+              {aiBusy ? (
+                <>
+                  <Loader2 size={14} className="animate-spin text-muted" />
+                  <span className="text-muted">AI erkennt das Kleidungsstück…</span>
+                </>
+              ) : aiHint ? (
+                <>
+                  <Sparkles size={14} className="text-fg" />
+                  <span className="text-muted">{aiHint}</span>
+                </>
+              ) : (
+                <>
+                  <Sparkles size={14} className="text-muted" />
+                  <span className="text-muted">AI füllt Felder gleich vor.</span>
+                </>
+              )}
             </div>
 
             <Field label="Name (optional)">

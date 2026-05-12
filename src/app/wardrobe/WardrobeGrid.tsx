@@ -2,30 +2,71 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { CATEGORIES, type Category, type Item } from "@/lib/types";
+import { Heart, Clock } from "lucide-react";
+import { CATEGORIES, daysSince, type Category, type Item } from "@/lib/types";
+
+type Filter = Category | "Alle" | "Favoriten" | "Lang nicht getragen";
 
 export function WardrobeGrid({ items }: { items: Item[] }) {
-  const [filter, setFilter] = useState<Category | "Alle">("Alle");
+  const [filter, setFilter] = useState<Filter>("Alle");
+
+  const sorted = useMemo(() => {
+    return [...items].sort((a, b) => {
+      if (a.is_favorite !== b.is_favorite) return a.is_favorite ? -1 : 1;
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
+  }, [items]);
 
   const visible = useMemo(() => {
-    if (filter === "Alle") return items;
-    return items.filter((i) => i.category === filter);
-  }, [items, filter]);
+    if (filter === "Alle") return sorted;
+    if (filter === "Favoriten") return sorted.filter((i) => i.is_favorite);
+    if (filter === "Lang nicht getragen") {
+      return sorted.filter((i) => {
+        const d = daysSince(i.last_worn_at);
+        return d === null || d > 30;
+      });
+    }
+    return sorted.filter((i) => i.category === filter);
+  }, [sorted, filter]);
 
   const present = useMemo(() => {
     const set = new Set(items.map((i) => i.category));
     return CATEGORIES.filter((c) => set.has(c));
   }, [items]);
 
+  const favCount = items.filter((i) => i.is_favorite).length;
+  const oldCount = items.filter((i) => {
+    const d = daysSince(i.last_worn_at);
+    return d === null || d > 30;
+  }).length;
+
   return (
     <>
       <div className="scroll-x -mx-4 mb-4 flex gap-2 overflow-x-auto px-4">
         <button
           onClick={() => setFilter("Alle")}
-          className={`chip ${filter === "Alle" ? "chip-active" : ""}`}
+          className={`chip whitespace-nowrap ${filter === "Alle" ? "chip-active" : ""}`}
         >
           Alle ({items.length})
         </button>
+        {favCount > 0 && (
+          <button
+            onClick={() => setFilter("Favoriten")}
+            className={`chip whitespace-nowrap ${filter === "Favoriten" ? "chip-active" : ""}`}
+          >
+            <Heart size={12} fill="currentColor" /> {favCount}
+          </button>
+        )}
+        {oldCount > 0 && (
+          <button
+            onClick={() => setFilter("Lang nicht getragen")}
+            className={`chip whitespace-nowrap ${
+              filter === "Lang nicht getragen" ? "chip-active" : ""
+            }`}
+          >
+            <Clock size={12} /> Vergessen ({oldCount})
+          </button>
+        )}
         {present.map((c) => (
           <button
             key={c}
@@ -52,6 +93,11 @@ export function WardrobeGrid({ items }: { items: Item[] }) {
                 className="absolute inset-0 h-full w-full object-contain p-2"
                 loading="lazy"
               />
+              {item.is_favorite && (
+                <span className="absolute right-2 top-2 text-rose-500">
+                  <Heart size={16} fill="currentColor" />
+                </span>
+              )}
             </div>
             <div className="px-3 py-2">
               <div className="truncate text-sm font-medium">

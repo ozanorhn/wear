@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { TopBar } from "@/components/TopBar";
 import { BottomNav } from "@/components/BottomNav";
 import { ItemActions } from "./ItemActions";
-import type { Item } from "@/lib/types";
+import { formatLastWorn, type Item } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -38,10 +38,16 @@ export default async function ItemPage({ params }: { params: { id: string } }) {
           {item.color && <Row label="Farbe" value={item.color} />}
           {item.seasons.length > 0 && <Row label="Saison" value={item.seasons.join(", ")} />}
           {item.occasions.length > 0 && <Row label="Anlass" value={item.occasions.join(", ")} />}
+          <Row label="Zuletzt getragen" value={formatLastWorn(item.last_worn_at)} />
+          <Row label="Wie oft getragen" value={`${item.wear_count}×`} />
           {item.notes && <Row label="Notizen" value={item.notes} />}
         </dl>
 
-        <ItemActions id={item.id} imageUrl={item.image_url} />
+        <ItemActions
+          id={item.id}
+          imageUrl={item.image_url}
+          isFavorite={item.is_favorite}
+        />
       </main>
       <BottomNav />
     </>

@@ -49,6 +49,34 @@ export async function fetchWeather(lat: number, lon: number): Promise<WeatherInf
   };
 }
 
+export type DailyForecast = {
+  date: string;
+  tempMin: number;
+  tempMax: number;
+  precipitation: number;
+  code: number;
+  summary: string;
+};
+
+export async function fetchWeekForecast(
+  lat: number,
+  lon: number,
+): Promise<DailyForecast[]> {
+  const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,weather_code&timezone=auto&forecast_days=7`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error("Wettervorhersage konnte nicht geladen werden.");
+  const json = await res.json();
+  const d = json.daily;
+  return d.time.map((date: string, i: number) => ({
+    date,
+    tempMin: d.temperature_2m_min[i],
+    tempMax: d.temperature_2m_max[i],
+    precipitation: d.precipitation_sum[i],
+    code: d.weather_code[i],
+    summary: WEATHER_TEXT[d.weather_code[i]] ?? "Wetter",
+  }));
+}
+
 export function getPosition(): Promise<GeolocationPosition> {
   return new Promise((resolve, reject) => {
     if (!navigator.geolocation) {

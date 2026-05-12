@@ -30,6 +30,9 @@ export type Item = {
   occasions: Occasion[];
   notes: string | null;
   image_url: string;
+  is_favorite: boolean;
+  last_worn_at: string | null;
+  wear_count: number;
   created_at: string;
 };
 
@@ -38,7 +41,19 @@ export type Outfit = {
   user_id: string;
   name: string | null;
   item_ids: string[];
+  is_favorite: boolean;
+  last_worn_at: string | null;
+  wear_count: number;
+  tryon_url: string | null;
   created_at: string;
+};
+
+export type Wear = {
+  id: string;
+  user_id: string;
+  outfit_id: string | null;
+  item_ids: string[];
+  worn_at: string;
 };
 
 export type WeatherCondition = "kalt" | "kühl" | "mild" | "warm" | "heiß";
@@ -55,4 +70,21 @@ export function seasonForCondition(c: WeatherCondition): Season[] {
   if (c === "kalt" || c === "kühl") return ["Winter", "Übergang", "Ganzjährig"];
   if (c === "mild") return ["Übergang", "Ganzjährig"];
   return ["Sommer", "Ganzjährig"];
+}
+
+export function daysSince(iso: string | null): number | null {
+  if (!iso) return null;
+  const diff = Date.now() - new Date(iso).getTime();
+  return Math.floor(diff / (1000 * 60 * 60 * 24));
+}
+
+export function formatLastWorn(iso: string | null): string {
+  const days = daysSince(iso);
+  if (days === null) return "noch nie";
+  if (days === 0) return "heute";
+  if (days === 1) return "gestern";
+  if (days < 7) return `vor ${days} Tagen`;
+  if (days < 30) return `vor ${Math.floor(days / 7)} Wochen`;
+  if (days < 365) return `vor ${Math.floor(days / 30)} Monaten`;
+  return `vor ${Math.floor(days / 365)} Jahren`;
 }

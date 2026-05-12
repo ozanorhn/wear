@@ -2,13 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Shirt, Sparkles, Plus, Settings } from "lucide-react";
+import { Shirt, Sparkles, Plus, BarChart3 } from "lucide-react";
 
 const links = [
   { href: "/wardrobe", icon: Shirt, label: "Schrank" },
   { href: "/outfits", icon: Sparkles, label: "Outfits" },
   { href: "/wardrobe/add", icon: Plus, label: "Neu", primary: true },
-  { href: "/settings", icon: Settings, label: "Mehr" },
+  { href: "/stats", icon: BarChart3, label: "Stats" },
 ];
 
 export function BottomNav() {

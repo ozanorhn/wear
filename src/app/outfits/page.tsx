@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Dices, CloudSun, Plus } from "lucide-react";
+import { Calendar, CloudSun, Dices, Plus, Wand2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { TopBar } from "@/components/TopBar";
 import { BottomNav } from "@/components/BottomNav";
@@ -14,7 +14,10 @@ export default async function OutfitsPage() {
     supabase.from("items").select("*"),
   ]);
 
-  const outfits = (outfitsData ?? []) as Outfit[];
+  const outfits = ((outfitsData ?? []) as Outfit[]).sort((a, b) => {
+    if (a.is_favorite !== b.is_favorite) return a.is_favorite ? -1 : 1;
+    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+  });
   const items = (itemsData ?? []) as Item[];
   const itemById = new Map(items.map((i) => [i.id, i]));
 
@@ -22,10 +25,12 @@ export default async function OutfitsPage() {
     <>
       <TopBar title="Outfits" />
       <main className="mx-auto max-w-md px-4 pb-28 pt-3">
-        <div className="grid grid-cols-3 gap-3">
-          <ActionTile href="/outfits/create" icon={<Plus size={22} />} label="Manuell" />
-          <ActionTile href="/outfits/random" icon={<Dices size={22} />} label="Zufall" />
+        <div className="grid grid-cols-2 gap-3">
+          <ActionTile href="/outfits/ai" icon={<Wand2 size={22} />} label="AI-Vorschlag" highlight />
+          <ActionTile href="/outfits/week" icon={<Calendar size={22} />} label="Wochenplan" />
           <ActionTile href="/outfits/weather" icon={<CloudSun size={22} />} label="Wetter" />
+          <ActionTile href="/outfits/random" icon={<Dices size={22} />} label="Zufall" />
+          <ActionTile href="/outfits/create" icon={<Plus size={22} />} label="Manuell" />
         </div>
 
         <h2 className="mb-3 mt-8 text-xs font-semibold uppercase tracking-wide text-muted">
@@ -67,10 +72,12 @@ export default async function OutfitsPage() {
                     ))}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <div className="truncate text-sm font-medium">
+                    <div className="flex items-center gap-1.5 truncate text-sm font-medium">
+                      {o.is_favorite && <span className="text-rose-500">❤</span>}
                       {o.name ?? `Outfit · ${pieces.length} Teile`}
                     </div>
                     <div className="truncate text-xs text-muted">
+                      {o.wear_count > 0 ? `${o.wear_count}× getragen · ` : ""}
                       {pieces.map((p) => p.category).join(" · ")}
                     </div>
                   </div>
@@ -89,17 +96,23 @@ function ActionTile({
   href,
   icon,
   label,
+  highlight,
 }: {
   href: string;
   icon: React.ReactNode;
   label: string;
+  highlight?: boolean;
 }) {
   return (
     <Link
       href={href}
-      className="card flex aspect-square flex-col items-center justify-center gap-2 active:scale-[0.98]"
+      className={`flex aspect-[2/1] flex-col items-center justify-center gap-2 rounded-2xl border transition active:scale-[0.98] ${
+        highlight
+          ? "border-fg bg-fg text-bg"
+          : "border-border bg-card text-fg"
+      }`}
     >
-      <div className="text-fg">{icon}</div>
+      <div>{icon}</div>
       <span className="text-xs font-medium">{label}</span>
     </Link>
   );

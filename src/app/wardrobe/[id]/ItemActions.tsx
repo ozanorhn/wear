@@ -2,13 +2,30 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Trash2 } from "lucide-react";
+import { Heart, Trash2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
-export function ItemActions({ id, imageUrl }: { id: string; imageUrl: string }) {
+export function ItemActions({
+  id,
+  imageUrl,
+  isFavorite,
+}: {
+  id: string;
+  imageUrl: string;
+  isFavorite: boolean;
+}) {
   const supabase = createClient();
   const router = useRouter();
   const [busy, setBusy] = useState(false);
+  const [fav, setFav] = useState(isFavorite);
+
+  async function toggleFavorite() {
+    const next = !fav;
+    setFav(next);
+    const { error } = await supabase.from("items").update({ is_favorite: next }).eq("id", id);
+    if (error) setFav(!next);
+    router.refresh();
+  }
 
   async function onDelete() {
     if (!confirm("Dieses Kleidungsstück löschen?")) return;
@@ -24,7 +41,14 @@ export function ItemActions({ id, imageUrl }: { id: string; imageUrl: string }) 
   }
 
   return (
-    <div className="mt-6">
+    <div className="mt-6 space-y-2">
+      <button
+        onClick={toggleFavorite}
+        className={`btn w-full ${fav ? "bg-rose-500 text-white" : "btn-outline"}`}
+      >
+        <Heart size={16} fill={fav ? "currentColor" : "none"} />
+        {fav ? "Favorit" : "Als Favorit markieren"}
+      </button>
       <button
         onClick={onDelete}
         disabled={busy}
