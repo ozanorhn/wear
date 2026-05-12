@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Camera, ImagePlus, Loader2, Sparkles } from "lucide-react";
+import { Camera, ImagePlus, Loader2, Scissors, Sparkles } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { TopBar } from "@/components/TopBar";
 import { getRemoveBackground } from "@/lib/bgRemoval";
@@ -17,7 +17,11 @@ export default function AddItemPage() {
   const galleryInput = useRef<HTMLInputElement>(null);
 
   const [stage, setStage] = useState<Stage>("pick");
+  const [removeBg, setRemoveBg] = useState(true);
   const [processedBlob, setProcessedBlob] = useState<Blob | null>(null);
+  const [processedExt, setProcessedExt] = useState<string>("png");
+  const [processedMime, setProcessedMime] = useState<string>("image/png");
+  const [bgRemoved, setBgRemoved] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [processingMsg, setProcessingMsg] = useState("Lade Modell…");
 
@@ -72,12 +76,34 @@ export default function AddItemPage() {
     }
   }
 
+  function extFromMime(mime: string): string {
+    if (mime === "image/jpeg") return "jpg";
+    if (mime === "image/webp") return "webp";
+    if (mime === "image/heic") return "heic";
+    if (mime === "image/heif") return "heif";
+    return "png";
+  }
+
   async function onFileChosen(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
-    setStage("processing");
     setError(null);
+
+    if (!removeBg) {
+      const mime = file.type || "image/jpeg";
+      setProcessedBlob(file);
+      setProcessedMime(mime);
+      setProcessedExt(extFromMime(mime));
+      setBgRemoved(false);
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+      setPreviewUrl(URL.createObjectURL(file));
+      setStage("form");
+      autoCategorize(file);
+      return;
+    }
+
+    setStage("processing");
     setProcessingMsg("Lade Modell (einmalig, dauert beim ersten Mal kurz)…");
 
     try {
@@ -85,6 +111,9 @@ export default function AddItemPage() {
       setProcessingMsg("Entferne Hintergrund…");
       const blob = await removeBackground(file);
       setProcessedBlob(blob);
+      setProcessedMime("image/png");
+      setProcessedExt("png");
+      setBgRemoved(true);
       if (previewUrl) URL.revokeObjectURL(previewUrl);
       setPreviewUrl(URL.createObjectURL(blob));
       setStage("form");
@@ -112,10 +141,10 @@ export default function AddItemPage() {
       } = await supabase.auth.getUser();
       if (!user) throw new Error("Nicht eingeloggt.");
 
-      const filename = `${user.id}/${crypto.randomUUID()}.png`;
+      const filename = `${user.id}/${crypto.randomUUID()}.${processedExt}`;
       const { error: upErr } = await supabase.storage
         .from("clothes")
-        .upload(filename, processedBlob, { contentType: "image/png", upsert: false });
+        .upload(filename, processedBlob, { contentType: processedMime, upsert: false });
       if (upErr) throw upErr;
 
       const { data: pub } = supabase.storage.from("clothes").getPublicUrl(filename);
@@ -164,6 +193,33 @@ export default function AddItemPage() {
               <ImagePlus size={18} />
               Aus Galerie hochladen
             </button>
+
+            <label className="card mt-2 flex w-full max-w-xs cursor-pointer items-center justify-between gap-3 p-3">
+              <div className="flex items-center gap-2.5">
+                <Scissors size={18} className={removeBg ? "text-fg" : "text-muted"} />
+                <div>
+                  <div className="text-sm font-medium">Hintergrund entfernen</div>
+                  <div className="text-[11px] text-muted">
+                    {removeBg ? "AI schneidet automatisch frei" : "Original-Foto behalten"}
+                  </div>
+                </div>
+              </div>
+              <span
+                role="switch"
+                aria-checked={removeBg}
+                onClick={() => setRemoveBg(!removeBg)}
+                className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer items-center rounded-full transition ${
+                  removeBg ? "bg-fg" : "bg-border"
+                }`}
+              >
+                <span
+                  className={`inline-block h-5 w-5 transform rounded-full bg-bg transition ${
+                    removeBg ? "translate-x-5" : "translate-x-0.5"
+                  }`}
+                />
+              </span>
+            </label>
+
             <input
               ref={cameraInput}
               type="file"
@@ -202,9 +258,11 @@ export default function AddItemPage() {
                 alt="Vorschau"
                 className="absolute inset-0 h-full w-full object-contain p-4"
               />
-              <span className="absolute right-2 top-2 inline-flex items-center gap-1 rounded-full bg-fg/85 px-2 py-1 text-[10px] font-medium text-bg">
-                <Sparkles size={10} /> Hintergrund entfernt
-              </span>
+              {bgRemoved && (
+                <span className="absolute right-2 top-2 inline-flex items-center gap-1 rounded-full bg-fg/85 px-2 py-1 text-[10px] font-medium text-bg">
+                  <Sparkles size={10} /> Hintergrund entfernt
+                </span>
+              )}
             </div>
 
             <div className="card flex items-center gap-2 p-3 text-xs">
