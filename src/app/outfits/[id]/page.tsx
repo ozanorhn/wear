@@ -32,16 +32,16 @@ export default async function OutfitPage({ params }: { params: { id: string } })
             <Link
               key={p.id}
               href={`/wardrobe/${p.id}`}
-              className="relative aspect-square overflow-hidden rounded-xl bg-border/30"
+              className="relative aspect-square overflow-hidden rounded-xl bg-border/30 transition active:scale-[0.98]"
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={p.image_url}
-                alt={p.category}
+                alt={p.name ?? p.category}
                 className="absolute inset-0 h-full w-full object-contain p-2"
               />
-              <span className="absolute bottom-1 left-1 rounded-full bg-fg/85 px-2 py-0.5 text-[10px] font-medium text-bg">
-                {p.category}
+              <span className="absolute bottom-1 left-1 max-w-[calc(100%-0.5rem)] truncate rounded-full bg-fg/85 px-2 py-0.5 text-[10px] font-medium text-bg">
+                {p.name ?? p.category}
               </span>
             </Link>
           ))}

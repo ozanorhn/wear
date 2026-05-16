@@ -12,8 +12,7 @@ export async function getRemoveBackground(): Promise<RemoveBg> {
     /* @ts-expect-error - ESM URL import resolved at runtime */
     "https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.5.5/+esm"
   );
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const fn = (mod as any).removeBackground as RemoveBg;
+  const fn = (mod as { removeBackground?: RemoveBg }).removeBackground;
   if (!fn) throw new Error("background-removal Modul konnte nicht geladen werden.");
   cached = fn;
   return fn;

@@ -128,7 +128,7 @@ export function WeatherOutfit({ items }: { items: Item[] }) {
       <div className="card grid grid-cols-2 gap-2 p-3">
         {pick.length === 0 && (
           <p className="col-span-2 py-6 text-center text-sm text-muted">
-            Keine passenden Teile gefunden — markier mehr Sachen mit „Saison".
+            Keine passenden Teile gefunden — markier mehr Sachen mit „Saison&ldquo;.
           </p>
         )}
         {pick.map((p) => (

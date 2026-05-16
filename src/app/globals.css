@@ -61,19 +61,28 @@ button {
 }
 
 .card {
-  @apply rounded-2xl border border-border bg-card;
+  @apply rounded-2xl border border-border bg-card shadow-[0_1px_2px_rgba(0,0,0,0.04)];
+}
+
+:root.dark .card {
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
 .input {
-  @apply w-full rounded-xl border border-border bg-card px-4 py-3 text-base outline-none focus:border-fg/40;
+  @apply w-full rounded-xl border border-border bg-card px-4 py-3 text-base outline-none transition focus:border-fg/40 focus:ring-2 focus:ring-fg/10;
 }
 
 .chip {
-  @apply inline-flex cursor-pointer items-center gap-1 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-medium transition;
+  @apply inline-flex cursor-pointer items-center gap-1 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-medium transition active:scale-95;
 }
 
 .chip-active {
   @apply border-fg bg-fg text-bg;
+}
+
+.btn:focus-visible,
+.chip:focus-visible {
+  @apply outline-none ring-2 ring-fg/20 ring-offset-1 ring-offset-bg;
 }
 
 .scroll-x {

@@ -88,3 +88,32 @@ export function formatLastWorn(iso: string | null): string {
   if (days < 365) return `vor ${Math.floor(days / 30)} Monaten`;
   return `vor ${Math.floor(days / 365)} Jahren`;
 }
+
+/**
+ * Streak = consecutive days (ending today or yesterday) with at least one wear logged.
+ * If neither today nor yesterday has a wear, streak is 0.
+ */
+export function computeStreak(wornAtIsoList: string[]): number {
+  if (wornAtIsoList.length === 0) return 0;
+  const dayKeys = new Set(
+    wornAtIsoList.map((iso) => new Date(iso).toISOString().slice(0, 10)),
+  );
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const todayKey = today.toISOString().slice(0, 10);
+  const yesterday = new Date(today);
+  yesterday.setDate(today.getDate() - 1);
+  const yesterdayKey = yesterday.toISOString().slice(0, 10);
+
+  let cursor: Date;
+  if (dayKeys.has(todayKey)) cursor = new Date(today);
+  else if (dayKeys.has(yesterdayKey)) cursor = new Date(yesterday);
+  else return 0;
+
+  let streak = 0;
+  while (dayKeys.has(cursor.toISOString().slice(0, 10))) {
+    streak++;
+    cursor.setDate(cursor.getDate() - 1);
+  }
+  return streak;
+}

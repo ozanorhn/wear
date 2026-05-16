@@ -1,20 +1,35 @@
 import Link from "next/link";
-import { Settings, Sparkles } from "lucide-react";
+import { Flame, Settings, Sparkles } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { TopBar } from "@/components/TopBar";
 import { BottomNav } from "@/components/BottomNav";
-import { CATEGORIES, formatLastWorn, type Item, type Outfit } from "@/lib/types";
+import {
+  CATEGORIES,
+  computeStreak,
+  formatLastWorn,
+  type Item,
+  type Outfit,
+} from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
 export default async function StatsPage() {
   const supabase = createClient();
-  const [{ data: itemsData }, { data: outfitsData }] = await Promise.all([
-    supabase.from("items").select("*"),
-    supabase.from("outfits").select("*"),
-  ]);
+  const sinceIso = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString();
+  const [{ data: itemsData }, { data: outfitsData }, { data: wearsData }] =
+    await Promise.all([
+      supabase.from("items").select("*"),
+      supabase.from("outfits").select("*"),
+      supabase.from("wears").select("worn_at").gte("worn_at", sinceIso),
+    ]);
   const items = (itemsData ?? []) as Item[];
   const outfits = (outfitsData ?? []) as Outfit[];
+  const wears = (wearsData ?? []) as { worn_at: string }[];
+  const streak = computeStreak(wears.map((w) => w.worn_at));
+  const last30 = wears.filter(
+    (w) =>
+      Date.now() - new Date(w.worn_at).getTime() <= 30 * 24 * 60 * 60 * 1000,
+  ).length;
 
   const byCategory = CATEGORIES.map((c) => ({
     cat: c,
@@ -53,6 +68,26 @@ export default async function StatsPage() {
         <div className="grid grid-cols-2 gap-3">
           <Tile big={items.length} label="Teile im Schrank" />
           <Tile big={outfits.length} label="Outfits gespeichert" />
+        </div>
+
+        <div className="mt-3 grid grid-cols-2 gap-3">
+          <div className="card p-4">
+            <div className="flex items-baseline gap-2">
+              <Flame size={20} className={streak > 0 ? "text-orange-500" : "text-muted"} />
+              <div className="text-3xl font-semibold">{streak}</div>
+            </div>
+            <div className="text-xs text-muted">
+              {streak === 0
+                ? "Trage etwas und starte deinen Streak"
+                : streak === 1
+                  ? "Tag in Folge"
+                  : "Tage in Folge"}
+            </div>
+          </div>
+          <div className="card p-4">
+            <div className="text-3xl font-semibold">{last30}</div>
+            <div className="text-xs text-muted">Outfits in 30 Tagen</div>
+          </div>
         </div>
 
         <Link href="/wardrobe/gaps" className="card mt-4 flex items-center gap-3 p-4 active:scale-[0.99]">
